@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  auth-service:
+    build: .
+    container_name: auth-service
+    depends_on:
+      - pgdb-auth
+    volumes:
+      - ./:/code/:rw
+    networks:
+      - authy
+    environment:
+      - .env
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --proxy-headers --host 0.0.0.0 --port 8000 --reload
+
+  pgdb-auth:
+    image: postgres:15-alpine
+    container_name: pgdb-auth
+    volumes:
+      - auth_pg_data:/var/lib/postgresql/data/
+    networks:
+      - authy
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=auth
+
+  smtp-service:
+    image: axllent/mailpit
+    restart: unless-stopped
+    container_name: smtp
+    networks:
+      - authy
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+networks:
+  authy:
+
+volumes:
+  auth_pg_data:
